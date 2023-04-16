@@ -93,7 +93,7 @@ const displayMovements = function(movements,sort = false){ //必ずハードコ�
      const html = `
        <div class="movements__row">
          <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
-         <div class="movements__value"> ${mov}€</div>
+         <div class="movements__value"> ${mov.toFixed(2)}€</div>
        </div>
      `; //こんな感じで使えるから、テンプレートリテラルはめっちゃ便利。typeはそれによって、cssが変わるから、クラス名に入れることもできる。インデックスは+1するのは０ベースだからね。
      containerMovements.insertAdjacentHTML("afterbegin",html);//これが結構新しい概念かも。containerMovementsは上にグローバル関数が作られている。insertAdjacentHTMLっていうのは、それをhtml上に表示させるためのやり方。afterbeginがbeforeendをよく使うんだけど、afterbeginだと新しい情報が上から降りてくる感じ。
@@ -104,7 +104,7 @@ const displayMovements = function(movements,sort = false){ //必ずハードコ�
   const calcDisplayBalance = function(acc){ //配列全体を渡すように修正した。
     acc.balance = acc.movements.reduce((acc,mov) => acc + mov,0);//大嫌いなアロー関数で綺麗にまとめた。第二引数忘れないで
     //いちいちbalanceに閉じ込めないで、ここでそのままプロパティを取得でき料に修正。
-    labelBalance.textContent = `${acc.balance} EUR`;//これほんと便利ね。textContent.labelBalanceって反対にしちゃったから気をつけようね。ちなみにジョナスが全部上でまとめてくれたから。アカウント全体を渡すようにしたからここでおacc.って書くの忘れないでね。
+    labelBalance.textContent = `${acc.balance.toFixed(2)} EUR`;//これほんと便利ね。textContent.labelBalanceって反対にしちゃったから気をつけようね。ちなみにジョナスが全部上でまとめてくれたから。アカウント全体を渡すようにしたからここでおacc.って書くの忘れないでね。
   };
 
   //実はアカウントによって金利が違うんです。だからそれを書き直しました。
@@ -112,12 +112,12 @@ const displayMovements = function(movements,sort = false){ //必ずハードコ�
     const incomes = acc.movements　//アカウントのうちのmovementsを使う
       .filter(mov => mov > 0)
       .reduce((acc,mov)=> acc + mov, 0);
-    labelSumIn.textContent = `${incomes}€`;
+    labelSumIn.textContent = `${incomes.toFixed(2)}€`;
 
     const outcomes = acc.movements　//アカウントのうちのmovementsを使う
       .filter(mov => mov < 0)
       .reduce((acc,mov)=> acc + mov, 0);
-    labelSumOut.textContent = `${Math.abs(outcomes)}€`; //Math.absは絶対値のabslutly
+    labelSumOut.textContent = `${Math.abs(outcomes.toFixed(2))}€`; //Math.absは絶対値のabslutly
 
     const interest = acc.movements //利息は預け入れの金額に対して1.2％の利子がつく計算らしい。
       .filter(mov => mov > 0)
@@ -221,7 +221,7 @@ btnTransfer.addEventListener("click",function(e){
 btnLoan.addEventListener("click",function(e){
   e.preventDefault();
 
-  const amount = +(inputLoanAmount.value);
+  const amount = Math.floor(inputLoanAmount.value); //ローン融資の時に、小数点以下切り下げのようにする
 
   if(
     amount > 0 && //融資希望額が0円以上で、
@@ -305,4 +305,50 @@ console.log(Number.isFinite(23 / 0)); //false 無限のため
 //isInteger 値が整数かどうかを返す。
 console.log(Number.isInteger(3)); //true
 console.log(Number.isInteger(23.0)); //true
-console.log(Number.isInteger(23 / 0)); //false
+console.log(Number.isInteger(23 / 0)); //false　
+
+//////////////////////////////////////////////////////////
+//171.Math and Rounding
+console.log("---171 lecture ---");
+//Math.sqrtとは平方根を表す
+console.log(Math.sqrt(25)); //5 ルート２みたいな感じ?
+console.log(25 ** (1/2));//5　これでも５とでる. **は右上の小さい数字のこと。二乗ってこと。ノエルに教えてもらった
+console.log(8 ** (1/3)); //1/3というのは立方体ということです。
+
+console.log(Math.max(5,18,23,1,5));  //23 一番大きい数を返す
+console.log(Math.min(1,2,3,4,5)); //1と表示。一番小さい数を表示
+
+console.log(Math.PI * Number.parseFloat("10px") ** 2); //Math.PIは円周率のこと。これで円の面積を求めることができる。
+
+console.log(Math.random()) //乱数の生成。引数に何も入れないと0から１の中での乱数が生成される
+console.log(Math.trunc (Math.random() * 6)); //０から６の整数の乱数が生成される
+console.log(Math.trunc (Math.random() * 6) + 1);  //これで０を含まなくなった
+
+//二つの整数の間の乱数を生成するようにしましょう
+const randamInt = (min,max) => Math.floor(Math.random() *(max - min) + 1) + min;
+//なぜこのようにmax- min とするかというと、いつも0から１の間が出るということは、1-0ってことじゃんか。そうなのか？
+console.log(randamInt(10,20)); //これで10から20の間の整数を作ることができました。
+
+//Rounding integer　四捨五入
+console.log(Math.trunc(23.3)); //23。小数点以下切り捨て　
+
+console.log(Math.round(23.3)); //23
+console.log(Math.round(23.9)); //24 Math.roundは四捨五入のこと
+
+//Math.ceil 小数点以下切り上げ
+console.log(Math.ceil(23.3)); //24
+console.log(Math.ceil(23.9));  //24
+
+//Math.floor 小数点以下切り下げ
+console.log(Math.floor(23.3)); //23
+console.log(Math.floor(23.9)); //23
+
+//こうなるとMath.trunc(小数点以下切り捨て)とMath.floor(小数点以下切り下げ)は一緒なんじゃないかという疑問が生まれる
+//ここで差が生まれるのがネガティブな値の扱い方
+console.log(Math.trunc(-23.3)); //-23 truncは絶対に捨てる
+console.log(Math.floor(-23.3));  //-24　ネガティブだと反対に働く。「現在の値{以下}で一番大きな整数を示すから
+
+//浮動小数点について
+console.log((2.7).toFixed(0)); //3 しかも文字列になります。
+console.log((2.7).toFixed(3));  //2.700 小数点以下が３桁になるまで0がたされる
+console.log((2.7).toFixed(1));  //2.7 小数点以下一桁
