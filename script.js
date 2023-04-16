@@ -81,164 +81,180 @@ const inputClosePin = document.querySelector('.form__input--pin');
 /////////////////////////////////////////////////
 // Functions
 
-const displayMovements = function (movements, sort = false) {
-  containerMovements.innerHTML = '';
+//口座の動きを確認する
+const displayMovements = function(movements,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
+  containerMovements.innerHTML = ""; //普通にいつもその初期化。　テキストコンテントみたい。
 
-  const movs = sort ? movements.slice().sort((a, b) => a - b) : movements;
+  const moves = sort ? movements.slice().sort((a,b) => a - b) : movements;//ここでslice()を使う理由は、コピーを作成するからです
 
-  movs.forEach(function (mov, i) {
-    const type = mov > 0 ? 'deposit' : 'withdrawal';
+  moves.forEach(function(mov,i){ //それぞれのアカウントのmovementsの配列があるよね。
+    const type = mov > 0 ? "deposit" : "withdrawal"; //三項演算子ですよ。だいぶ慣れた、
 
-    const html = `
-      <div class="movements__row">
-        <div class="movements__type movements__type--${type}">${
-      i + 1
-    } ${type}</div>
-        <div class="movements__value">${mov}€</div>
-      </div>
-    `;
+     const html = `
+       <div class="movements__row">
+         <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
+         <div class="movements__value"> ${mov}€</div>
+       </div>
+     `; //こんな感じで使えるから、テンプレートリテラルはめっちゃ便利。typeはそれによって、cssが変わるから、クラス名に入れることもできる。インデックスは+1するのは０ベースだからね。
+     containerMovements.insertAdjacentHTML("afterbegin",html);//これが結構新しい概念かも。containerMovementsは上にグローバル関数が作られている。insertAdjacentHTMLっていうのは、それをhtml上に表示させるためのやり方。afterbeginがbeforeendをよく使うんだけど、afterbeginだと新しい情報が上から降りてくる感じ。
+  })
+}
 
-    containerMovements.insertAdjacentHTML('afterbegin', html);
-  });
-};
 
-const calcDisplayBalance = function (acc) {
-  acc.balance = acc.movements.reduce((acc, mov) => acc + mov, 0);
-  labelBalance.textContent = `${acc.balance}€`;
-};
+  const calcDisplayBalance = function(acc){ //配列全体を渡すように修正した。
+    acc.balance = acc.movements.reduce((acc,mov) => acc + mov,0);//大嫌いなアロー関数で綺麗にまとめた。第二引数忘れないで
+    //いちいちbalanceに閉じ込めないで、ここでそのままプロパティを取得でき料に修正。
+    labelBalance.textContent = `${acc.balance} EUR`;//これほんと便利ね。textContent.labelBalanceって反対にしちゃったから気をつけようね。ちなみにジョナスが全部上でまとめてくれたから。アカウント全体を渡すようにしたからここでおacc.って書くの忘れないでね。
+  };
 
-const calcDisplaySummary = function (acc) {
-  const incomes = acc.movements
-    .filter(mov => mov > 0)
-    .reduce((acc, mov) => acc + mov, 0);
-  labelSumIn.textContent = `${incomes}€`;
+  //実はアカウントによって金利が違うんです。だからそれを書き直しました。
+  const calcDisplaySummary = function(acc){//アカウント全体を渡している
+    const incomes = acc.movements　//アカウントのうちのmovementsを使う
+      .filter(mov => mov > 0)
+      .reduce((acc,mov)=> acc + mov, 0);
+    labelSumIn.textContent = `${incomes}€`;
 
-  const out = acc.movements
-    .filter(mov => mov < 0)
-    .reduce((acc, mov) => acc + mov, 0);
-  labelSumOut.textContent = `${Math.abs(out)}€`;
+    const outcomes = acc.movements　//アカウントのうちのmovementsを使う
+      .filter(mov => mov < 0)
+      .reduce((acc,mov)=> acc + mov, 0);
+    labelSumOut.textContent = `${Math.abs(outcomes)}€`; //Math.absは絶対値のabslutly
 
-  const interest = acc.movements
-    .filter(mov => mov > 0)
-    .map(deposit => (deposit * acc.interestRate) / 100)
-    .filter((int, i, arr) => {
-      // console.log(arr);
-      return int >= 1;
-    })
-    .reduce((acc, int) => acc + int, 0);
-  labelSumInterest.textContent = `${interest}€`;
-};
+    const interest = acc.movements //利息は預け入れの金額に対して1.2％の利子がつく計算らしい。
+      .filter(mov => mov > 0)
+      .map(deposit => deposit * acc.interestRate/100) ////アカウントのinterestRateを使って計算する
+      .filter((int,i,arr) =>{
+        // console.log(arr);//(5) [2.4, 5.4, 36, 0.84, 15.6]となる。4つ目は１より小さいよね。
+        return int >= 1; //利子が１より小さい場合は除外するらしい。
+      })
+      .reduce((acc,int) => acc + int ,0) ;
+      labelSumInterest.textContent = `${interest}€`;
+  };
 
-const createUsernames = function (accs) {
-  accs.forEach(function (acc) {
-    acc.username = acc.owner
-      .toLowerCase()
-      .split(' ')
-      .map(name => name[0])
-      .join('');
-  });
-};
+  const createUsernames = function(accs){
+    accs.forEach(function(acc){
+      acc.username = acc.owner //このownerというのは下の。
+        .toLowerCase()
+        .split(" ")
+        .map(name => name[0])
+        .join("");
+    })};
 createUsernames(accounts);
 
-const updateUI = function (acc) {
-  // Display movements
+//動きによって、下の表示が変わるようにここでUI化
+const updateUI = function(acc){ //一つの関数にまとめる。引数はaccountのaccにすればオッケーよ
+  //それぞれのアカウントのお金の流れを、スクロールするところに表示させる
   displayMovements(acc.movements);
-
-  // Display balance
+  //右上に全ての預金動きを合計して表示させる
   calcDisplayBalance(acc);
-
-  // Display summary
+  //下にそれぞれの合計や、金利などを表示させる。
   calcDisplaySummary(acc);
-};
+}
+
 
 ///////////////////////////////////////
 // Event handlers
 let currentAccount;
 
-btnLogin.addEventListener('click', function (e) {
-  // Prevent form from submitting
+btnLogin.addEventListener("click",function(e){
+  //フォームが送信されないようにする。preventDefaultは規定のアクションを通常通りに行うべきではないことを伝える。
   e.preventDefault();
+  console.log("LOGIN");
+//currentAccountはここで。letで外部宣言しているからconstはいらないよ。
+//ここからはユーザー名があっているかの確認です。
+  currentAccount = accounts.find(acc => acc.username === inputLoginUsername.value); //入力されたusernameと等しいことを確認する。そしてvalueを忘れないで。入力フィールだから値を読み込むためには必要です。acc.usernameなのは、上のcreateUsernamesで頭文字をとって作成する関数を作っているからだよ。
+console.log(currentAccount);//自分のやつがあっているか確かめよう。
 
-  currentAccount = accounts.find(
-    acc => acc.username === inputLoginUsername.value
-  );
-  console.log(currentAccount);
+//ここからはpinと等しいかを確認するところ。
+if(currentAccount?.pin === +(inputLoginPin.value)){ //どうしてnumberを付けるかというと、valueは常に文字列になるため。pinは数字だったよね。
+  //もしここでユーザー名を空欄にしたり間違ったやつを売ったり、pinを打たないとエラーが出ますよ。ではそのエラーをどのように解消すればいいのか。
+  //まず思いつくのは、そのアカウントが存在するかを確かめること。オプショナル・チェーンを使おう
+  //「?.」この演算子すっかり忘れていたけど何これ。調べました。
+  //nullやundefinedの時にエラーになるのではなく、式が短略され、undefinedだけが返されるところ。エラーになったらいちいちめんどくさいしね。
+  // console.log("PIN LOGIN");
+  // welcome message
+   labelWelcome.textContent = `Welcome Back, ${currentAccount.owner.split(" ")[0]}`;
+   //ログインすると、上のメッセージ部分がこのようになる。いくらやっても覚えられあいね、splitはそこで指定された文字で区切ること。その０番目だから最初の名前だけ表示されるんだね。miyaとかjonasとか名前だけ。
+   //ここでログインができてから下に口座の動きが見えてくるんだよね。
+   containerApp.style.opacity = 100; //ここで透明度の操作をする。
+   //このcontainerAppとはクラス名にappがついているものを指定する。cssでopacityを変化させることのクラス名はappだった。天才！
+//すごくて天才かと思った
+//それでは次に、ログインをした後に、ユーザー名のところとpinのところを空にするやり方をやります。
+  inputLoginUsername.value = inputLoginPin.value = ""; //これで空になりました。value忘れないで！
+  //pinのところに残っているカーソルのフォーカスを外すやり方。
+  inputLoginPin.blur();//blur()とは⇨フォーカスを当てている状態から外したタイミングで実行されるイベントです。
 
-  if (currentAccount?.pin === Number(inputLoginPin.value)) {
-    // Display UI and message
-    labelWelcome.textContent = `Welcome back, ${
-      currentAccount.owner.split(' ')[0]
-    }`;
-    containerApp.style.opacity = 100;
+  updateUI(currentAccount); //今まではここに案数を一つ一つ書いていたけど,updateUIという一つの関数にまとめて、それを呼び出す形にしたのだ。
 
-    // Clear input fields
-    inputLoginUsername.value = inputLoginPin.value = '';
-    inputLoginPin.blur();
+}
 
-    // Update UI
-    updateUI(currentAccount);
-  }
-});
+}); //form要素のいいところは、入力してエンターキーを押すと実際にそのクリックイベントが自動的に紐付くこと。自分でclickを書く必要がないところは楽でいいと思います。
 
-btnTransfer.addEventListener('click', function (e) {
-  e.preventDefault();
-  const amount = Number(inputTransferAmount.value);
-  const receiverAcc = accounts.find(
-    acc => acc.username === inputTransferTo.value
-  );
-  inputTransferAmount.value = inputTransferTo.value = '';
+//他のユーザーへの送金ができますので、ここで実装していきます。右側にある黄色いところです。
+btnTransfer.addEventListener("click",function(e){
+  e.preventDefault(); //デフォルトの操作を制御する。さっきもやったね
+
+  const amount = +(inputTransferAmount.value);//要素を見るとinputTransferAmountは金額を入力するところなので、numberを入れます。いつものことですが、valueも忘れないでください。
+  const receiverAcc = accounts.find(acc => acc.username === inputTransferTo.value);
+  //ここは少しややこしいけど、金額の送付先を入れるので、accountsの全てのアカウントの配列から探す、として、accountsのusernameが送金先のアカウント名と一致しているかを===の等号演算子で確認をしています。
+  console.log(amount,receiverAcc);//これで入力された送金金額と、送金先の受け取りユーザーがちゃんとあっているかを確認します。。
+  //それに、自分の持っているお金よりも高い金額は振り込めないですよね。だからそこもチェックします。それに送る金額はネガティブになってはダメです。
+
+  inputTransferAmount.value = inputTransferTo.value = "";
 
   if (
-    amount > 0 &&
-    receiverAcc &&
-    currentAccount.balance >= amount &&
-    receiverAcc?.username !== currentAccount.username
-  ) {
-    // Doing the transfer
-    currentAccount.movements.push(-amount);
-    receiverAcc.movements.push(amount);
+    amount > 0 &&  //送る金額が0円以上か
+    receiverAcc &&//送る相手が存在するかどうか。存在するアカウントに送らないといけないからね。
+    currentAccount.balance >= amount && //送り元の 預金が送る金額よりも上か
+    receiverAcc?.username !== currentAccount.username)//オプチョナルチェーンを使って、receiverAccがぞんざいするときにって感じ
+  {
+    // console.log("Trnsfer valid");//これは確認ようにやっているんだけど、自分の預金額よりも多い数だと、これはログに表示されないよ
 
-    // Update UI
-    updateUI(currentAccount);
+    //そうしたら、これを送ったユーザーは預金が減って、受け取ったユーザーの預金が増えることは当たり前ですよね。
+    currentAccount.movements.push(-amount); //-だからここで数が減ってます
+    receiverAcc.movements.push(amount); //pushをするので、movementsの配列に後ろから付け足すイメージです
+    updateUI(currentAccount); //変更になりましたから、ここでももう一回関数を読んで表示させないとですね。さすがです
   }
 });
 
-btnLoan.addEventListener('click', function (e) {
+//Request Loan のところ。融資依頼
+//「融資希望額の10%以上の預金が一つ以上ないと融資しない」というルールになっている。
+btnLoan.addEventListener("click",function(e){
   e.preventDefault();
 
-  const amount = Number(inputLoanAmount.value);
+  const amount = +(inputLoanAmount.value);
 
-  if (amount > 0 && currentAccount.movements.some(mov => mov >= amount * 0.1)) {
-    // Add movement
-    currentAccount.movements.push(amount);
+  if(
+    amount > 0 && //融資希望額が0円以上で、
+    currentAccount.movements.some(mov => mov >= amount * 0.1)//現在のアカウントのムーブのなかに融資希望額の10%以上の学があれば
+  ){
+    //ムーブメントに動きを足す
+    currentAccount.movements.push(amount); //ムーブメントのところに追加
 
-    // Update UI
-    updateUI(currentAccount);
+    updateUI(currentAccount);//一つの関数にまとめたね。下の3つの動きをこれでまとめて動かしている
   }
-  inputLoanAmount.value = '';
+  inputLoanAmount.value = "";  //入力したとことをこれで空にしている
+
 });
 
-btnClose.addEventListener('click', function (e) {
-  e.preventDefault();
+btnClose.addEventListener("click",function(e){
+    e.preventDefault(); //デフォルトの動きを抑制
+    // console.log("Click! YAAAAS");
+    if(
+      inputCloseUsername.value === currentAccount.username & //close account のところに入力されたアカウント名が一致
+      +(inputClosePin.value) === currentAccount.pin　//close account のところに入力されたpinが一致
+    ){
+      const index = accounts.findIndex(acc => acc.username === currentAccount.username);//findIndexはfindと似ているけど、要素のindexを返すんだよ。これなんかindexOfに似ていない？
+      console.log(index); //これは入力された値がaccounts配列の何番目の要素かを出してくれる。もしこれがjs,1111だったら、account配列の最初だから、ログは0と表示される。
+      //これがindexOFと似ている件についてですが、indexOFは配列の中にある値しか検索できないこと。複雑な条件を作る場合は、indexOfではなく、findIndexを使う必要があります。
 
-  if (
-    inputCloseUsername.value === currentAccount.username &&
-    Number(inputClosePin.value) === currentAccount.pin
-  ) {
-    const index = accounts.findIndex(
-      acc => acc.username === currentAccount.username
-    );
-    console.log(index);
-    // .indexOf(23)
+      //アカウント削除
+      accounts.splice(index,1);//spliceは元の配列も変えてしなうから、この結果をどこかに保存しておく必要はないです。これでちゃんと消えました。（もちろんリロードしたらいけるよ）
 
-    // Delete account
-    accounts.splice(index, 1);
+      //画面を白く戻す
+      containerApp.style.opacity = 0;
+    }
 
-    // Hide UI
-    containerApp.style.opacity = 0;
-  }
-
-  inputCloseUsername.value = inputClosePin.value = '';
+    inputCloseUsername.vaue = inputClosePin.value = ""; //まぁ見えないんだけど、ここで入力したところを空にするわけです。
 });
 
 let sorted = false;
@@ -248,6 +264,45 @@ btnSort.addEventListener('click', function (e) {
   sorted = !sorted;
 });
 
+//上記のことは、ひとつ前のセクションでやってあるため割愛。しようと思ったが、置き換えました。私のメモが書いてあるからわかりやすいと思う。
 /////////////////////////////////////////////////
 /////////////////////////////////////////////////
 // LECTURES
+//Converting and Checking Numbers
+//jsでは、 整数で書いても小数で書いても、基本的に「常に小数」であること
+
+console.log(23 === 23.0); //trueとなる。
+
+//そして内部では64進数。数値は常に２進数で保存されます。
+//数字の表示の仕方ですが、下の２パターンがあります。
+console.log(Number("23"));
+console.log(+"23");
+
+//parsingとは　文字列から数字を読み解くことができます。このparseIntのIntは「整数」という意味.
+console.log(Number.parseInt("30px",10)); //30 これは30と「数字」で認識される。
+console.log(Number.parseInt("e23",10));//Nanとでる。これは数字で文字列を始める必要があるからです。
+//でも必ず文字列で始めないといけないってめんどくさくない？
+//実は、parseIntは第二引数を受け付けます。これは正規表現です。私たちは普段10芯数を使っているから10といれる。これによって状況によってはバグを回避できる可能性がある。
+
+//parseFloatで「小数」を表す
+console.log(Number.parseFloat("2.5rem"));//2.5
+console.log(Number.parseInt("2.5rem")); //2。少数のところは無視される
+
+
+//isNaNかをチェックする。Not a Numberの略。返却はブール値
+//このメソッドは、値が「数値ではないことを確認」するためにのみ使用。
+console.log(Number.isNaN(20)); //false。なぜなら「数値」だから。わかる？isNaN = 数字ではない
+console.log(Number.isNaN("20")); //false。なぜなら「数値」だから
+console.log(Number.isNaN(+"20px")); //true
+console.log(Number.isNaN(23/ 0 ));//Infinityという値だから、falseになる
+
+//isFinite.値が無限かどうかを調べる。返却はブール値。有限ならtrue。無限ならfase
+console.log(Number.isFinite(20)); //true
+console.log(Number.isFinite("20")); //false 「数値」じゃないから
+console.log(Number.isFinite(+"20X")); //false　「数値」じゃないから
+console.log(Number.isFinite(23 / 0)); //false 無限のため
+
+//isInteger 値が整数かどうかを返す。
+console.log(Number.isInteger(3)); //true
+console.log(Number.isInteger(23.0)); //true
+console.log(Number.isInteger(23 / 0)); //false
