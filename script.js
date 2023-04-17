@@ -82,17 +82,24 @@ const inputClosePin = document.querySelector('.form__input--pin');
 // Functions
 
 //口座の動きを確認する
-const displayMovements = function(movements,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
+const displayMovements = function(acc,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
   containerMovements.innerHTML = ""; //普通にいつもその初期化。　テキストコンテントみたい。
 
-  const moves = sort ? movements.slice().sort((a,b) => a - b) : movements;//ここでslice()を使う理由は、コピーを作成するからです
+  const moves = sort ? acc.movements .slice().sort((a,b) => a - b) : acc.movements ;//ここでslice()を使う理由は、コピーを作成するからです
 
   moves.forEach(function(mov,i){ //それぞれのアカウントのmovementsの配列があるよね。
     const type = mov > 0 ? "deposit" : "withdrawal"; //三項演算子ですよ。だいぶ慣れた、
 
+    const date = new Date(acc.movementsDates[i]); //さっきやったみたいに、文字列から日付を抽出する方法
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2,0);
+    const day = `${date.getDate()}`.padStart(2,0);
+    const displayDate =  `${year} / ${month} / ${day}`;
+
      const html = `
        <div class="movements__row">
          <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
+         <div class="movements__date">${displayDate}</div>
          <div class="movements__value"> ${mov.toFixed(2)}€</div>
        </div>
      `; //こんな感じで使えるから、テンプレートリテラルはめっちゃ便利。typeはそれによって、cssが変わるから、クラス名に入れることもできる。インデックスは+1するのは０ベースだからね。
@@ -143,7 +150,7 @@ createUsernames(accounts);
 //動きによって、下の表示が変わるようにここでUI化
 const updateUI = function(acc){ //一つの関数にまとめる。引数はaccountのaccにすればオッケーよ
   //それぞれのアカウントのお金の流れを、スクロールするところに表示させる
-  displayMovements(acc.movements);
+  displayMovements(acc);
   //右上に全ての預金動きを合計して表示させる
   calcDisplayBalance(acc);
   //下にそれぞれの合計や、金利などを表示させる。
@@ -154,6 +161,16 @@ const updateUI = function(acc){ //一つの関数にまとめる。引数はacco
 ///////////////////////////////////////
 // Event handlers
 let currentAccount;
+
+//常にログインしているように見せかけている
+ //こうすることで、常にログインしたりする必要がなくなる
+ currentAccount = account1; //常にアカウント１でログイン
+ updateUI(currentAccount); //これで一番下をいじる
+ containerApp.style.opacity = 100; //100にすることで透明度をいじる
+
+
+
+
 
 btnLogin.addEventListener("click",function(e){
   //フォームが送信されないようにする。preventDefaultは規定のアクションを通常通りに行うべきではないことを伝える。
@@ -178,6 +195,16 @@ if(currentAccount?.pin === +(inputLoginPin.value)){ //どうしてnumberを付�
    containerApp.style.opacity = 100; //ここで透明度の操作をする。
    //このcontainerAppとはクラス名にappがついているものを指定する。cssでopacityを変化させることのクラス名はappだった。天才！
 //すごくて天才かと思った
+//左上にある日付は常にその時の日付を表示するため、この関数を作ります。
+const now = new Date(); //このままやると（日本標準時）とかも刻印される
+// labelDate.textContent = now;
+//必要なのは、月、年、日くらい year/month/days
+const year = now.getFullYear();
+const month = `${now.getMonth() + 1}`.padStart(2,0); //0ベースだから+1 ,padStartというのは文字列が指定した長さになるように、現在の文字列を延長すること。引数は(桁数,桁数に合わせるために埋める文字)
+const day = `${now.getDate()}`.padStart(2,0);
+const hour = `${now.getHours()}`.padStart(2,0);
+const min = `${now.getMinutes()}`.padStart(2,0);
+labelDate.textContent = `${year} / ${month} / ${day}, ${hour}:${min}`;
 //それでは次に、ログインをした後に、ユーザー名のところとpinのところを空にするやり方をやります。
   inputLoginUsername.value = inputLoginPin.value = ""; //これで空になりました。value忘れないで！
   //pinのところに残っているカーソルのフォーカスを外すやり方。
@@ -212,6 +239,13 @@ btnTransfer.addEventListener("click",function(e){
     //そうしたら、これを送ったユーザーは預金が減って、受け取ったユーザーの預金が増えることは当たり前ですよね。
     currentAccount.movements.push(-amount); //-だからここで数が減ってます
     receiverAcc.movements.push(amount); //pushをするので、movementsの配列に後ろから付け足すイメージです
+
+
+    //transfer を新しくデータ渡したときに、日付も一緒に渡す
+    currentAccount.movementsDates.push(new Date().toISOString());//関数だから()を忘れないで
+    receiverAcc.movementsDates.push(new Date().toISOString());
+
+    //updateUI 下の3つのやつ
     updateUI(currentAccount); //変更になりましたから、ここでももう一回関数を読んで表示させないとですね。さすがです
   }
 });
@@ -229,6 +263,9 @@ btnLoan.addEventListener("click",function(e){
   ){
     //ムーブメントに動きを足す
     currentAccount.movements.push(amount); //ムーブメントのところに追加
+
+    //loan を新しくデータ渡したときに、日付も一緒に渡す
+    currentAccount.movementsDates.push(new Date().toISOString());
 
     updateUI(currentAccount);//一つの関数にまとめたね。下の3つの動きをこれでまとめて動かしている
   }
@@ -428,39 +465,39 @@ console.log(10n /3n); //3nとなる
 
 //////////////////////////////////////////////////////////
 //175.Creating Dates
-console.log("---- CREATING DATE -----");
+// console.log("---- CREATING DATE -----");
 
 //日付を作成する　やり方は4つ
 //1.Date()関数を使う
-const now = new Date(); //今の時間が表示される
-console.log(now);
+// const now = new Date(); //今の時間が表示される
+// console.log(now);
 
 //2.日付文字列から、日付を解読する方法
-console.log(new Date("Mon Apr 17 2023 22:16:22")); //こレト、GMTとかっていうのも表示される　グリニッジ
-console.log(new Date("December 24, 2020")); //このように入力しても、ちゃんとGMTとか表示してくれるよ
-console.log(new Date(account1.movementsDates[0])); //日付をこのように取得しても、ちゃんと標準時とか出してくれる
-console.log(new Date(2037,10,19,15,23,5));//Thu Nov 19 2037 15:23:05 GMT+0900 (日本標準時)これもこのように解析してくれる。頭いいね。
-//しかし、10月と打ったのに、なぜ11月になるのか　⇨ jsの月は０ベースであるからです。配列みたいだね。
-console.log(new Date(2037,10,31)); //Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)
-//11月って30日までしかないけど、、それだとjsが自動で修正してくれるよ
-
-console.log(new Date(0));//Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)この日です
-console.log(new Date(3 * 24 * 60 * 60 * 1000));//Sun Jan 04 1970 09:00:00 GMT+0900 (日本標準時)
-//3日後＊1日は２４時間＊１時間は60分＊1分は60秒＊１０００mミリ秒で表した結果です
-
-const future = new Date(2037,10,19,15,23,5);
-console.log(future);
-console.log(future.getFullYear()); //2037 年が表示される
-console.log(future.getMonth()); //10
-console.log(future.getDate()); //19
-console.log(future.getDay()); //4 木曜日ということ 0が日曜日
-console.log(future.getHours()); //15
-console.log(future.getMinutes()); //23
-console.log(future.getSeconds()); //5
-console.log(future.toISOString()); //2037-11-19T06:23:05.000　と表示されるこうゆう型式があるみたいです
-console.log(future.getTime());  //指定した日時が1970年1月1日 00:00:00」からどれだけ経過いるのかをミリ秒単位で取得するために使います。
-console.log(Date.now()); //今の時間のミリ秒を記載
-
-
-future.setFullYear(2040); //アップデートする
-console.log(future);
+// console.log(new Date("Mon Apr 17 2023 22:16:22")); //こレト、GMTとかっていうのも表示される　グリニッジ
+// console.log(new Date("December 24, 2020")); //このように入力しても、ちゃんとGMTとか表示してくれるよ
+// console.log(new Date(account1.movementsDates[0])); //日付をこのように取得しても、ちゃんと標準時とか出してくれる
+// console.log(new Date(2037,10,19,15,23,5));//Thu Nov 19 2037 15:23:05 GMT+0900 (日本標準時)これもこのように解析してくれる。頭いいね。
+// //しかし、10月と打ったのに、なぜ11月になるのか　⇨ jsの月は０ベースであるからです。配列みたいだね。
+// console.log(new Date(2037,10,31)); //Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)
+// //11月って30日までしかないけど、、それだとjsが自動で修正してくれるよ
+//
+// console.log(new Date(0));//Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)この日です
+// console.log(new Date(3 * 24 * 60 * 60 * 1000));//Sun Jan 04 1970 09:00:00 GMT+0900 (日本標準時)
+// //3日後＊1日は２４時間＊１時間は60分＊1分は60秒＊１０００mミリ秒で表した結果です
+//
+// const future = new Date(2037,10,19,15,23,5);
+// console.log(future);
+// console.log(future.getFullYear()); //2037 年が表示される
+// console.log(future.getMonth()); //10
+// console.log(future.getDate()); //19
+// console.log(future.getDay()); //4 木曜日ということ 0が日曜日
+// console.log(future.getHours()); //15
+// console.log(future.getMinutes()); //23
+// console.log(future.getSeconds()); //5
+// console.log(future.toISOString()); //2037-11-19T06:23:05.000　と表示されるこうゆう型式があるみたいです
+// console.log(future.getTime());  //指定した日時が1970年1月1日 00:00:00」からどれだけ経過いるのかをミリ秒単位で取得するために使います。
+// console.log(Date.now()); //今の時間のミリ秒を記載
+//
+//
+// future.setFullYear(2040); //アップデートする
+// console.log(future);
