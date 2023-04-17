@@ -352,3 +352,28 @@ console.log(Math.floor(-23.3));  //-24　ネガティブだと反対に働く。
 console.log((2.7).toFixed(0)); //3 しかも文字列になります。
 console.log((2.7).toFixed(3));  //2.700 小数点以下が３桁になるまで0がたされる
 console.log((2.7).toFixed(1));  //2.7 小数点以下一桁
+
+//////////////////////////////////////////////////////////
+//172.The Remainder Operator あまり演算子、割り算のあまりを返す演算子
+
+console.log(5 % 2); //1 あまりを表示する
+console.log(8 % 3); //2
+
+console.log(6 % 2); //0  偶数だから
+
+//奇数か偶数かを確認するのにちょうどいい。
+const isEven = n => n % 2 === 0; //偶数ならtrueと返す関数を作成
+console.log(isEven(8)); //true
+console.log(isEven(23)); //false
+console.log(isEven(1)); //false
+
+//右上の合計金額のところを押したら、偶数列の動きがオレンジ色になるというスタイルにしてみた
+labelBalance.addEventListener("click",function(){
+  [...document.querySelectorAll(".movements__row")].forEach(function(row,i){
+    if (i % 2 === 0) row.style.backgroundColor = "orangered";　//２の倍の列をオレンジに
+    if (i % 3 === 0) row.style.backgroundColor = "pink"; //３の倍の列をピンクに
+  });
+});
+//スプリットオペレーターにして、それ全体をforEachでループさせる。
+//列を引数にとり、それの値が２で割り切れる偶数であれば、背景をオレンジ色に変える
+//every n timeというときは余剰演算子を使うのがいいと思います。
