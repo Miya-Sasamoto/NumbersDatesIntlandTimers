@@ -425,3 +425,42 @@ console.log(20n == 20); //true　イコールが2つだと精度が下がってO
 console.log(huge + " IS REALLY BIG"); //普通に表示される
 
 console.log(10n /3n); //3nとなる
+
+//////////////////////////////////////////////////////////
+//175.Creating Dates
+console.log("---- CREATING DATE -----");
+
+//日付を作成する　やり方は4つ
+//1.Date()関数を使う
+const now = new Date(); //今の時間が表示される
+console.log(now);
+
+//2.日付文字列から、日付を解読する方法
+console.log(new Date("Mon Apr 17 2023 22:16:22")); //こレト、GMTとかっていうのも表示される　グリニッジ
+console.log(new Date("December 24, 2020")); //このように入力しても、ちゃんとGMTとか表示してくれるよ
+console.log(new Date(account1.movementsDates[0])); //日付をこのように取得しても、ちゃんと標準時とか出してくれる
+console.log(new Date(2037,10,19,15,23,5));//Thu Nov 19 2037 15:23:05 GMT+0900 (日本標準時)これもこのように解析してくれる。頭いいね。
+//しかし、10月と打ったのに、なぜ11月になるのか　⇨ jsの月は０ベースであるからです。配列みたいだね。
+console.log(new Date(2037,10,31)); //Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)
+//11月って30日までしかないけど、、それだとjsが自動で修正してくれるよ
+
+console.log(new Date(0));//Tue Dec 01 2037 00:00:00 GMT+0900 (日本標準時)この日です
+console.log(new Date(3 * 24 * 60 * 60 * 1000));//Sun Jan 04 1970 09:00:00 GMT+0900 (日本標準時)
+//3日後＊1日は２４時間＊１時間は60分＊1分は60秒＊１０００mミリ秒で表した結果です
+
+const future = new Date(2037,10,19,15,23,5);
+console.log(future);
+console.log(future.getFullYear()); //2037 年が表示される
+console.log(future.getMonth()); //10
+console.log(future.getDate()); //19
+console.log(future.getDay()); //4 木曜日ということ 0が日曜日
+console.log(future.getHours()); //15
+console.log(future.getMinutes()); //23
+console.log(future.getSeconds()); //5
+console.log(future.toISOString()); //2037-11-19T06:23:05.000　と表示されるこうゆう型式があるみたいです
+console.log(future.getTime());  //指定した日時が1970年1月1日 00:00:00」からどれだけ経過いるのかをミリ秒単位で取得するために使います。
+console.log(Date.now()); //今の時間のミリ秒を記載
+
+
+future.setFullYear(2040); //アップデートする
+console.log(future);
