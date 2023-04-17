@@ -397,3 +397,31 @@ const PI = 3.14_15;
 console.log(PI); //3.1415　アンダースコアは数字と数字の間にしかおけない.先頭とか末尾もだめ
 
 console.log(Number("23_000")); //実はNumber関数にアンダースコアを入れるとNaNとなる。数字ではなくなる
+
+//////////////////////////////////////////////////////////
+//174.Working with BigInt
+console.log(2 ** 53 - 1); //9007199254740991これが保存できる一番大きな数。
+console.log(Number.MAX_SAFE_INTEGER); //9007199254740991の結果。jsが安全に表示できる最大の整数
+
+//しかし状況によってはこれ以上の大きな数字を扱わなければいけないこともあります。DBのIDとかね
+console.log(2345678900987654321234567n); //末尾にnをつけるとBigIntの意味になる コンソール上の見た目も変わる
+console.log(BigInt(4567543456787654345676543456)); //BigInt関数を使うこともできます
+
+//この知識を使ったいくつかの操作
+console.log(10000n + 10000n); //BigIntでも演算子は使えます
+console.log(345676543456765434567n * 567654567654456n); //BigInt同士の計算もできる
+
+const huge = 234532345323456n;
+const num = 10;
+// console.log(huge * num); //これはエラーになる。型が違う同士の計算はできません。
+console.log(huge * BigInt(num)); //これならできます。
+
+//例外集
+console.log(28n > 15); //true
+console.log(20n === 20); //false これは普通のかずとBigIntの型が違うのでfalseになります。
+console.log(20n == 20); //true　イコールが2つだと精度が下がってOKになる
+
+//文字列の連結の例外
+console.log(huge + " IS REALLY BIG"); //普通に表示される
+
+console.log(10n /3n); //3nとなる
