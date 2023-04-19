@@ -21,9 +21,9 @@ const account1 = {
     '2020-01-28T09:15:04.904Z',
     '2020-04-01T10:17:24.185Z',
     '2020-05-08T14:11:59.604Z',
-    '2020-05-27T17:01:17.194Z',
-    '2020-07-11T23:36:17.929Z',
-    '2020-07-12T10:51:36.790Z',
+    '2020-07-26T17:01:17.194Z',
+    '2023-04-14T23:36:17.929Z',
+    '2023-04-18T10:51:36.790Z',
   ],
   currency: 'EUR',
   locale: 'pt-PT', // de-DE
@@ -80,6 +80,27 @@ const inputClosePin = document.querySelector('.form__input--pin');
 
 /////////////////////////////////////////////////
 // Functions
+const formatMovementsDate = function(date){
+
+  const calcDaysPast = (date1,date2) =>
+    Math.round(Math.abs((date2- date1) /(1000 * 60 * 60 * 24))); //Math.roundは四捨五入
+
+  const daysPassed = calcDaysPast(new Date(),date); //new Dateは今日の日付だね。今日の日付　- その時の日付
+  console.log(daysPassed);
+  
+
+  if(daysPassed === 0) return "Today"; //差分がなければ今日
+  if(daysPassed === 1) return "Yesterday";//1日違いなら昨日
+  if(daysPassed <= 7) return `${daysPassed} days ago`; //差が１週間以内なら何日前
+  else{
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2,0);
+    const day = `${date.getDate()}`.padStart(2,0);
+    return   `${year} / ${month} / ${day}`;
+  } //それ以外ならフルで日付が出るように。　
+};
+
+
 
 //口座の動きを確認する
 const displayMovements = function(acc,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
@@ -91,10 +112,8 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
     const type = mov > 0 ? "deposit" : "withdrawal"; //三項演算子ですよ。だいぶ慣れた、
 
     const date = new Date(acc.movementsDates[i]); //さっきやったみたいに、文字列から日付を抽出する方法
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2,0);
-    const day = `${date.getDate()}`.padStart(2,0);
-    const displayDate =  `${year} / ${month} / ${day}`;
+
+    const displayDate = formatMovementsDate(date);
 
      const html = `
        <div class="movements__row">
@@ -501,3 +520,22 @@ console.log(10n /3n); //3nとなる
 //
 // future.setFullYear(2040); //アップデートする
 // console.log(future);
+
+//////////////////////////////////////////////////////////
+//177.Operations With Dates
+//日付の計算をします
+
+//日付をミリスタンプにして計算を行うことができます。
+
+const future = new Date(2037,10,19,15,23,5);
+console.log(Number(future)); //2142224585000
+console.log(+future); //2142224585000 +はNumberという意味ですね　
+//この数字に変換することで、日付の計算ができます。つまりミリ秒単位のタイムスタンプです。　
+const calcDaysPast = (date1,date2) => Math.abs((date2- date1) /(1000 * 60 * 60 * 24));
+ //(1000 * 60 * 60 * 24) はミリ*1分*１時間*1日　という計算です
+//Math.absを入れることで、仮にdate1の方が過去日でも、その差分の日数を絶対値で出すことができる
+
+const days1 =  calcDaysPast(new Date(2037,4,14),new Date(2037,4,19));
+console.log(days1); //5
+
+//もしサマータイムとかがある日にちの計算をしたいのなら、momentjsというライブラリを使うといいですが、簡単な計算ならこれで大丈夫です
