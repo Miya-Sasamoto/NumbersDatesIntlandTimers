@@ -26,7 +26,8 @@ const account1 = {
     '2023-04-18T10:51:36.790Z',
   ],
   currency: 'EUR',
-  locale: 'pt-PT', // de-DE
+  // locale: 'pt-PT', // de-DE これポルトガルです
+  locale:"ja-JP", //勝手に日本にした。私が
 };
 
 const account2 = {
@@ -46,7 +47,7 @@ const account2 = {
     '2020-07-26T12:01:20.894Z',
   ],
   currency: 'USD',
-  locale: 'en-US',
+  locale: 'en-US', //これ、アメリカです
 };
 
 const accounts = [account1, account2];
@@ -80,23 +81,25 @@ const inputClosePin = document.querySelector('.form__input--pin');
 
 /////////////////////////////////////////////////
 // Functions
-const formatMovementsDate = function(date){
+//日付に関しての関数だよーん
+const formatMovementsDate = function(date,locale){
 
   const calcDaysPast = (date1,date2) =>
     Math.round(Math.abs((date2- date1) /(1000 * 60 * 60 * 24))); //Math.roundは四捨五入
 
   const daysPassed = calcDaysPast(new Date(),date); //new Dateは今日の日付だね。今日の日付　- その時の日付
   console.log(daysPassed);
-  
+
 
   if(daysPassed === 0) return "Today"; //差分がなければ今日
   if(daysPassed === 1) return "Yesterday";//1日違いなら昨日
   if(daysPassed <= 7) return `${daysPassed} days ago`; //差が１週間以内なら何日前
   else{
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2,0);
-    const day = `${date.getDate()}`.padStart(2,0);
-    return   `${year} / ${month} / ${day}`;
+    // const year = date.getFullYear();
+    // const month = `${date.getMonth() + 1}`.padStart(2,0);
+    // const day = `${date.getDate()}`.padStart(2,0);
+    // return   `${year} / ${month} / ${day}`;
+    return new Intl.DateTimeFormat(locale).format(date);
   } //それ以外ならフルで日付が出るように。　
 };
 
@@ -113,7 +116,8 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
 
     const date = new Date(acc.movementsDates[i]); //さっきやったみたいに、文字列から日付を抽出する方法
 
-    const displayDate = formatMovementsDate(date);
+    const displayDate = formatMovementsDate(date,acc.locale);
+    //日付の関数を呼び出しているんだけど、dateとロケーションも渡さないとね
 
      const html = `
        <div class="movements__row">
@@ -191,6 +195,14 @@ let currentAccount;
 
 
 
+// const locale = navigator.language; //navigatorはウェブブラウザの情報を取得できるオブジェクト
+// console.log(locale); //jaと出る。私の場合は
+
+//
+// labelDate.textContent = new Intl.DateTimeFormat("jp-JP",options).format(now);
+//IntlDateFormat (国際化)　ja-JP は日本、en-USはアメリカ式 日本だと年/月/日で表される
+//引数に、上で指定したoptionを入れると時間が入るようになる
+
 btnLogin.addEventListener("click",function(e){
   //フォームが送信されないようにする。preventDefaultは規定のアクションを通常通りに行うべきではないことを伝える。
   e.preventDefault();
@@ -215,16 +227,31 @@ if(currentAccount?.pin === +(inputLoginPin.value)){ //どうしてnumberを付�
    //このcontainerAppとはクラス名にappがついているものを指定する。cssでopacityを変化させることのクラス名はappだった。天才！
 //すごくて天才かと思った
 //左上にある日付は常にその時の日付を表示するため、この関数を作ります。
-const now = new Date(); //このままやると（日本標準時）とかも刻印される
-// labelDate.textContent = now;
-//必要なのは、月、年、日くらい year/month/days
-const year = now.getFullYear();
-const month = `${now.getMonth() + 1}`.padStart(2,0); //0ベースだから+1 ,padStartというのは文字列が指定した長さになるように、現在の文字列を延長すること。引数は(桁数,桁数に合わせるために埋める文字)
-const day = `${now.getDate()}`.padStart(2,0);
-const hour = `${now.getHours()}`.padStart(2,0);
-const min = `${now.getMinutes()}`.padStart(2,0);
-labelDate.textContent = `${year} / ${month} / ${day}, ${hour}:${min}`;
-//それでは次に、ログインをした後に、ユーザー名のところとpinのところを空にするやり方をやります。
+// const now = new Date(); //このままやると（日本標準時）とかも刻印される
+// // labelDate.textContent = now;
+// //必要なのは、月、年、日くらい year/month/days
+// const year = now.getFullYear();
+// const month = `${now.getMonth() + 1}`.padStart(2,0); //0ベースだから+1 ,padStartというのは文字列が指定した長さになるように、現在の文字列を延長すること。引数は(桁数,桁数に合わせるために埋める文字)
+// const day = `${now.getDate()}`.padStart(2,0);
+// const hour = `${now.getHours()}`.padStart(2,0);
+// const min = `${now.getMinutes()}`.padStart(2,0);
+// labelDate.textContent = `${year} / ${month} / ${day}, ${hour}:${min}`;
+//これに置き換え↓ログインした時に左上に出てくる日付をこれで指定するよ　
+const now = new Date();
+const options = {
+  hour: "numeric",
+  minute: "numeric",
+  day:"numeric",
+  month:"numeric",//numericとの違いは英語の方が違いがわかりやすい。numeric⇨8 long⇨Augustみたいな違い。他にも色々種類があるよ。2-digitとか（二桁）
+  year:"numeric",
+  weekday:"long" //曜日 longなら水曜日ってでる short⇨(水)  他にもやり方があるよ
+  //numericは数字
+};
+
+labelDate.textContent = new Intl.DateTimeFormat(currentAccount.locale,options).format(now);
+///currentAccount.locale,で、ログインしたユーザのロケーションで日付がフォーマットされる。ポル語意味不明
+
+//それでは次に、ログインをした後に、ユーザー名のところとpinのところを空にするやり方をやり ます。
   inputLoginUsername.value = inputLoginPin.value = ""; //これで空になりました。value忘れないで！
   //pinのところに残っているカーソルのフォーカスを外すやり方。
   inputLoginPin.blur();//blur()とは⇨フォーカスを当てている状態から外したタイミングで実行されるイベントです。
@@ -539,3 +566,6 @@ const days1 =  calcDaysPast(new Date(2037,4,14),new Date(2037,4,19));
 console.log(days1); //5
 
 //もしサマータイムとかがある日にちの計算をしたいのなら、momentjsというライブラリを使うといいですが、簡単な計算ならこれで大丈夫です
+
+//////////////////////////////////////////////////////////
+//178.Internationalizing Dates (Intl)
