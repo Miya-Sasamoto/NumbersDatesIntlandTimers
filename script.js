@@ -25,7 +25,7 @@ const account1 = {
     '2023-04-14T23:36:17.929Z',
     '2023-04-18T10:51:36.790Z',
   ],
-  currency: 'EUR',
+  currency: 'JPY', //勝手に日本円にしてみた,
   // locale: 'pt-PT', // de-DE これポルトガルです
   locale:"ja-JP", //勝手に日本にした。私が
 };
@@ -103,7 +103,13 @@ const formatMovementsDate = function(date,locale){
   } //それ以外ならフルで日付が出るように。　
 };
 
-
+///ここめっちゃ難しい　functionの引数に入れているolocale,valueなど、任意の値を返すことができます。
+const formatCur = function(value,locale,currency){
+   return new Intl.NumberFormat(locale,{
+    style:"currency",
+    currency:currency,
+  }).format(value);
+}
 
 //口座の動きを確認する
 const displayMovements = function(acc,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
@@ -119,11 +125,20 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
     const displayDate = formatMovementsDate(date,acc.locale);
     //日付の関数を呼び出しているんだけど、dateとロケーションも渡さないとね
 
+//通貨の規定を外部で指定する
+
+
+
+
+//さっき外部で作ったformatCurの関数をここで引き出す
+    const formatedMov = formatCur(mov,acc.locale,acc.currency);
+    //最後にformatをつけるのを忘れずに　
+
      const html = `
        <div class="movements__row">
          <div class="movements__type movements__type--${type}">${i + 1} ${type}</div>
          <div class="movements__date">${displayDate}</div>
-         <div class="movements__value"> ${mov.toFixed(2)}€</div>
+         <div class="movements__value"> ${formatedMov}</div>
        </div>
      `; //こんな感じで使えるから、テンプレートリテラルはめっちゃ便利。typeはそれによって、cssが変わるから、クラス名に入れることもできる。インデックスは+1するのは０ベースだからね。
      containerMovements.insertAdjacentHTML("afterbegin",html);//これが結構新しい概念かも。containerMovementsは上にグローバル関数が作られている。insertAdjacentHTMLっていうのは、それをhtml上に表示させるためのやり方。afterbeginがbeforeendをよく使うんだけど、afterbeginだと新しい情報が上から降りてくる感じ。
@@ -133,8 +148,9 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
 
   const calcDisplayBalance = function(acc){ //配列全体を渡すように修正した。
     acc.balance = acc.movements.reduce((acc,mov) => acc + mov,0);//大嫌いなアロー関数で綺麗にまとめた。第二引数忘れないで
+
     //いちいちbalanceに閉じ込めないで、ここでそのままプロパティを取得でき料に修正。
-    labelBalance.textContent = `${acc.balance.toFixed(2)} EUR`;//これほんと便利ね。textContent.labelBalanceって反対にしちゃったから気をつけようね。ちなみにジョナスが全部上でまとめてくれたから。アカウント全体を渡すようにしたからここでおacc.って書くの忘れないでね。
+    labelBalance.textContent = formatCur(acc.balance,acc.locale,acc.currency);//これほんと便利ね。textContent.labelBalanceって反対にしちゃったから気をつけようね。ちなみにジョナスが全部上でまとめてくれたから。アカウント全体を渡すようにしたからここでおacc.って書くの忘れないでね。
   };
 
   //実はアカウントによって金利が違うんです。だからそれを書き直しました。
@@ -142,12 +158,12 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
     const incomes = acc.movements　//アカウントのうちのmovementsを使う
       .filter(mov => mov > 0)
       .reduce((acc,mov)=> acc + mov, 0);
-    labelSumIn.textContent = `${incomes.toFixed(2)}€`;
+    labelSumIn.textContent = formatCur(incomes,acc.locale,acc.currency);
 
     const outcomes = acc.movements　//アカウントのうちのmovementsを使う
       .filter(mov => mov < 0)
       .reduce((acc,mov)=> acc + mov, 0);
-    labelSumOut.textContent = `${Math.abs(outcomes.toFixed(2))}€`; //Math.absは絶対値のabslutly
+    labelSumOut.textContent = formatCur(Math.abs(outcomes),acc.locale,acc.currency); //Math.absは絶対値のabslutly
 
     const interest = acc.movements //利息は預け入れの金額に対して1.2％の利子がつく計算らしい。
       .filter(mov => mov > 0)
@@ -157,7 +173,7 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
         return int >= 1; //利子が１より小さい場合は除外するらしい。
       })
       .reduce((acc,int) => acc + int ,0) ;
-      labelSumInterest.textContent = `${interest}€`;
+      labelSumInterest.textContent = formatCur(interest,acc.locale,acc.currency);
   };
 
   const createUsernames = function(accs){
@@ -569,3 +585,27 @@ console.log(days1); //5
 
 //////////////////////////////////////////////////////////
 //178.Internationalizing Dates (Intl)
+//上のアプリケーションの方で実装済み
+
+
+//////////////////////////////////////////////////////////
+//179.Internationalizing Numbers (Intl)
+
+const number = 38476.987; //38,476.987のようにコンマがついて表示される
+
+const options = {
+  // style: "unit", //ここは単位(unit)、％、通貨(currency)とか指定できるよ
+  // unit:"mile-per-hour" //時速という意味
+  //これは%とか摂氏とかほんとに色々な種類があるから調べてみてね 通貨とかも
+  style:"currency",
+  currency:"JPY", //これで¥見れるよ
+  //国によって、数字の前に通貨記号がくるか、後ろに記載するかは変わってくるからね。
+  //実は、通貨はロケーションによって決まるわけではないので、このように別途で指定するようにしましょう。
+  //だから、ロケーションは日本でもドルサインを出すことも可能
+  // useGrouping :false
+  //useGroupingとは数字のコンマ区切りとかをなくす。基準はtrue。falseならコンマ区切りなし
+}
+
+console.log(new Intl.NumberFormat("ja-JP",options).format(number));//38,476.987 mph
+console.log(new Intl.NumberFormat("de-DE",options).format(number));//38.476,987 mi/h
+//国によって時速の示し方が違う
