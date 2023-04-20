@@ -312,7 +312,7 @@ btnTransfer.addEventListener("click",function(e){
   }
 });
 
-//Request Loan のところ。融資依頼
+//Request   のところ。融資依頼
 //「融資希望額の10%以上の預金が一つ以上ないと融資しない」というルールになっている。
 btnLoan.addEventListener("click",function(e){
   e.preventDefault();
@@ -323,13 +323,17 @@ btnLoan.addEventListener("click",function(e){
     amount > 0 && //融資希望額が0円以上で、
     currentAccount.movements.some(mov => mov >= amount * 0.1)//現在のアカウントのムーブのなかに融資希望額の10%以上の学があれば
   ){
-    //ムーブメントに動きを足す
-    currentAccount.movements.push(amount); //ムーブメントのところに追加
+    setTimeout(function(){
 
-    //loan を新しくデータ渡したときに、日付も一緒に渡す
-    currentAccount.movementsDates.push(new Date().toISOString());
+      //ムーブメントに動きを足す
+      currentAccount.movements.push(amount); //ムーブメントのところに追加
 
-    updateUI(currentAccount);//一つの関数にまとめたね。下の3つの動きをこれでまとめて動かしている
+      //loan を新しくデータ渡したときに、日付も一緒に渡す
+      currentAccount.movementsDates.push(new Date().toISOString());
+
+      updateUI(currentAccount);//一つの関数にまとめたね。下の3つの動きをこれでまとめて動かしている
+    },2500); //ここでsetTimeoutを使ったのは、通常ローンの審査には時間がかかるから、それを模写してみた。
+    //この場合は引数に2500ミリセカンドを渡しているので、2.5秒後に実行される
   }
   inputLoanAmount.value = "";  //入力したとことをこれで空にしている
 
@@ -609,3 +613,35 @@ const options = {
 console.log(new Intl.NumberFormat("ja-JP",options).format(number));//38,476.987 mph
 console.log(new Intl.NumberFormat("de-DE",options).format(number));//38.476,987 mi/h
 //国によって時速の示し方が違う
+
+//////////////////////////////////////////////////////////
+//180.Timers: setTimeout and setInterval
+
+//まずはsetTimeout　一定時間後に関数が実行されるようにスケジュールする
+//しかしコールバック関数は一度だけ実行
+ //ピザの注文をイメージしてみましょう
+ const ingrediensts = ["Olive","Spinach"];
+ const pizzaTimer = setTimeout((ing1,ing2) =>
+ console.log(`Here is your ${ing1} and ${ing2} Pizza!`),
+ 3000,
+ ...ingrediensts
+);
+//難しいのは1秒が1000ミリ秒であること。3000を第二引数にするのは3秒後ということ
+//上記は3秒後にこの関数をスケジュールするという事になる
+console.log("Waiting...");
+//このようにwaiting...を後に書いたとしても、setTimeoutは上に書いてあるということは
+//コンソールには
+//waiting..
+//Here is your pizza! という順番で吐き出されることになる。　
+//この遅れる仕組みを非同期jsと呼ぶ　
+
+if(ingrediensts.includes("Spinach"))clearTimeout(pizzaTimer);
+//clearTimeoutとは、その設定されているタイマーを無効にできる
+//この場合、ingredienstsにspinachが入っていたらpizzaTimerを無効にするという意味
+
+//ではもし、5秒ごと、とか10分ごとにその関数を実行したくなったらどうする？
+setInterval(function() {
+  const now = new Date();
+  console.log(now);
+},10000);//
+//10秒ごとに今の時間がコンソールに表示される
