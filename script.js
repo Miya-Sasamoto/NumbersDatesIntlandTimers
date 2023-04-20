@@ -94,13 +94,12 @@ const formatMovementsDate = function(date,locale){
   if(daysPassed === 0) return "Today"; //差分がなければ今日
   if(daysPassed === 1) return "Yesterday";//1日違いなら昨日
   if(daysPassed <= 7) return `${daysPassed} days ago`; //差が１週間以内なら何日前
-  else{
     // const year = date.getFullYear();
     // const month = `${date.getMonth() + 1}`.padStart(2,0);
     // const day = `${date.getDate()}`.padStart(2,0);
     // return   `${year} / ${month} / ${day}`;
     return new Intl.DateTimeFormat(locale).format(date);
-  } //それ以外ならフルで日付が出るように。　
+   //それ以外ならフルで日付が出るように。　
 };
 
 ///ここめっちゃ難しい　functionの引数に入れているolocale,valueなど、任意の値を返すことができます。
@@ -109,15 +108,17 @@ const formatCur = function(value,locale,currency){
     style:"currency",
     currency:currency,
   }).format(value);
-}
+};
 
 //口座の動きを確認する
-const displayMovements = function(acc,sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
+const displayMovements = function(acc, sort = false){ //必ずハードコーデイィングではなくて関数を作る癖をつけましょう。 //sortをfalseにしたのは、ボタンをクリックすることでこの関数を呼び出すようにしたいからだよ
   containerMovements.innerHTML = ""; //普通にいつもその初期化。　テキストコンテントみたい。
 
-  const moves = sort ? acc.movements .slice().sort((a,b) => a - b) : acc.movements ;//ここでslice()を使う理由は、コピーを作成するからです
+  const movs = sort
+    ? acc.movements.slice().sort((a, b) => a - b)
+    : acc.movements;//ここでslice()を使う理由は、コピーを作成するからです
 
-  moves.forEach(function(mov,i){ //それぞれのアカウントのmovementsの配列があるよね。
+  movs.forEach(function(mov,i){ //それぞれのアカウントのmovementsの配列があるよね。
     const type = mov > 0 ? "deposit" : "withdrawal"; //三項演算子ですよ。だいぶ慣れた、
 
     const date = new Date(acc.movementsDates[i]); //さっきやったみたいに、文字列から日付を抽出する方法
@@ -126,9 +127,6 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
     //日付の関数を呼び出しているんだけど、dateとロケーションも渡さないとね
 
 //通貨の規定を外部で指定する
-
-
-
 
 //さっき外部で作ったformatCurの関数をここで引き出す
     const formatedMov = formatCur(mov,acc.locale,acc.currency);
@@ -142,8 +140,8 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
        </div>
      `; //こんな感じで使えるから、テンプレートリテラルはめっちゃ便利。typeはそれによって、cssが変わるから、クラス名に入れることもできる。インデックスは+1するのは０ベースだからね。
      containerMovements.insertAdjacentHTML("afterbegin",html);//これが結構新しい概念かも。containerMovementsは上にグローバル関数が作られている。insertAdjacentHTMLっていうのは、それをhtml上に表示させるためのやり方。afterbeginがbeforeendをよく使うんだけど、afterbeginだと新しい情報が上から降りてくる感じ。
-  })
-}
+  });
+};
 
 
   const calcDisplayBalance = function(acc){ //配列全体を渡すように修正した。
@@ -181,9 +179,10 @@ const displayMovements = function(acc,sort = false){ //必ずハードコーデ�
       acc.username = acc.owner //このownerというのは下の。
         .toLowerCase()
         .split(" ")
-        .map(name => name[0])
+        .map((name) => name[0])
         .join("");
-    })};
+    });
+  };
 createUsernames(accounts);
 
 //動きによって、下の表示が変わるようにここでUI化
@@ -196,19 +195,52 @@ const updateUI = function(acc){ //一つの関数にまとめる。引数はacco
   calcDisplaySummary(acc);
 }
 
+const startLogOutTimer = function() {
+  const tick = function(){
+    const min = String(Math.trunc(time / 60)).padStart(2,"0"); //上記で指定した秒数を60で割ることで分数を出すことができる
+    const sec = String(Math.trunc(time % 60)).padStart(2,"0"); //%はあまり
+    //math.truncだーーーー！小数点以下切り下げだ！absとごっちゃになった。
+    //math.absは絶対値。-1を１と返すみたいに
+
+    //残りの時間をユーザーインターフェースに表示するようにする
+    labelTimer.textContent = `${min}:${sec}`;
+
+
+    //タイマーが切れた時（0になった時）タイマーを停止し、ユーザーをログアウトさせる
+    if (time === 0){
+      clearInterval(timer);
+      //timeoutを止めるときは、clearTimeout
+      //intervalを止めるときはclearIntervalここちょっと違うね
+      labelWelcome.textContent = "Log ing to get started";
+      containerApp.style.opacity = 0;
+    }
+
+    //1秒ごとに減らしていく
+    // time = time - 1;
+    time--; //1秒ごとに減っていくのと同じことだね。
+    //ここに持ってくるのは、本当に残りが0になってからログアウトさせるようにするため
+  }
+
+  //5分のタイマーをここで設定する
+  let time = 300;
+
+  //1秒ごとにタイマーを呼び出す
+  tick();
+  const timer = setInterval(tick,1000);
+  return timer;
+};
+
+
 
 ///////////////////////////////////////
 // Event handlers
-let currentAccount;
+let currentAccount,timer;
 
 //常にログインしているように見せかけている
  //こうすることで、常にログインしたりする必要がなくなる
- currentAccount = account1; //常にアカウント１でログイン
- updateUI(currentAccount); //これで一番下をいじる
- containerApp.style.opacity = 100; //100にすることで透明度をいじる
-
-
-
+ // currentAccount = account1; //常にアカウント１でログイン
+ // updateUI(currentAccount); //これで一番下をいじる
+ // // containerApp.style.opacity = 100; //100にすることで透明度をいじる
 
 
 // const locale = navigator.language; //navigatorはウェブブラウザの情報を取得できるオブジェクト
@@ -225,7 +257,9 @@ btnLogin.addEventListener("click",function(e){
   console.log("LOGIN");
 //currentAccountはここで。letで外部宣言しているからconstはいらないよ。
 //ここからはユーザー名があっているかの確認です。
-  currentAccount = accounts.find(acc => acc.username === inputLoginUsername.value); //入力されたusernameと等しいことを確認する。そしてvalueを忘れないで。入力フィールだから値を読み込むためには必要です。acc.usernameなのは、上のcreateUsernamesで頭文字をとって作成する関数を作っているからだよ。
+  currentAccount = accounts.find(
+    (acc) => acc.username === inputLoginUsername.value
+  ); //入力されたusernameと等しいことを確認する。そしてvalueを忘れないで。入力フィールだから値を読み込むためには必要です。acc.usernameなのは、上のcreateUsernamesで頭文字をとって作成する関数を作っているからだよ。
 console.log(currentAccount);//自分のやつがあっているか確かめよう。
 
 //ここからはpinと等しいかを確認するところ。
@@ -264,13 +298,20 @@ const options = {
   //numericは数字
 };
 
-labelDate.textContent = new Intl.DateTimeFormat(currentAccount.locale,options).format(now);
+labelDate.textContent = new Intl.DateTimeFormat(
+  currentAccount.locale,
+  options
+).format(now);
 ///currentAccount.locale,で、ログインしたユーザのロケーションで日付がフォーマットされる。ポル語意味不明
 
 //それでは次に、ログインをした後に、ユーザー名のところとpinのところを空にするやり方をやり ます。
   inputLoginUsername.value = inputLoginPin.value = ""; //これで空になりました。value忘れないで！
   //pinのところに残っているカーソルのフォーカスを外すやり方。
   inputLoginPin.blur();//blur()とは⇨フォーカスを当てている状態から外したタイミングで実行されるイベントです。
+
+
+  if(timer)clearInterval(timer); //これでユーザーが切り替わった時も問題なく最初から時間が動く
+  timer = startLogOutTimer();
 
   updateUI(currentAccount); //今まではここに案数を一つ一つ書いていたけど,updateUIという一つの関数にまとめて、それを呼び出す形にしたのだ。
 
@@ -309,6 +350,10 @@ btnTransfer.addEventListener("click",function(e){
 
     //updateUI 下の3つのやつ
     updateUI(currentAccount); //変更になりましたから、ここでももう一回関数を読んで表示させないとですね。さすがです
+
+    //タイマーをリセットする
+    clearInterval(timer);
+    timer = startLogOutTimer();
   }
 });
 
@@ -332,6 +377,10 @@ btnLoan.addEventListener("click",function(e){
       currentAccount.movementsDates.push(new Date().toISOString());
 
       updateUI(currentAccount);//一つの関数にまとめたね。下の3つの動きをこれでまとめて動かしている
+
+      //タイマーをリセットする
+      clearInterval(timer);
+      timer = startLogOutTimer();
     },2500); //ここでsetTimeoutを使ったのは、通常ローンの審査には時間がかかるから、それを模写してみた。
     //この場合は引数に2500ミリセカンドを渡しているので、2.5秒後に実行される
   }
@@ -361,9 +410,10 @@ btnClose.addEventListener("click",function(e){
 });
 
 let sorted = false;
-btnSort.addEventListener('click', function (e) {
+btnSort.addEventListener("click", function (e) {
   e.preventDefault();
-  displayMovements(currentAccount.movements, !sorted);
+
+  displayMovements(currentAccount, !sorted);
   sorted = !sorted;
 });
 
@@ -639,9 +689,9 @@ if(ingrediensts.includes("Spinach"))clearTimeout(pizzaTimer);
 //clearTimeoutとは、その設定されているタイマーを無効にできる
 //この場合、ingredienstsにspinachが入っていたらpizzaTimerを無効にするという意味
 
-//ではもし、5秒ごと、とか10分ごとにその関数を実行したくなったらどうする？
-setInterval(function() {
-  const now = new Date();
-  console.log(now);
-},10000);//
+// //ではもし、5秒ごと、とか10分ごとにその関数を実行したくなったらどうする？
+// setInterval(function() {
+//   const now = new Date();
+//   console.log(now);
+// },10000);//
 //10秒ごとに今の時間がコンソールに表示される
